@@ -1,0 +1,72 @@
+:root {
+    --color-primario: #0d6efd; /* Azul tecnológico */
+    --color-fondo: #f8f9fa;
+}
+
+body {
+    background-color: var(--color-fondo);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+}
+
+/* ------------------------------------------------------------------
+   SECCIÓN HERO (INICIO)
+   ------------------------------------------------------------------ */
+.hero-section {
+    background-color: #1a1a1a;
+    color: white;
+    padding: 100px 15px;
+    border-radius: 8px;
+    margin-bottom: 50px;
+    text-align: center;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                      url('https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1400');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.hero-section h1 {
+    color: var(--color-primario);
+    font-weight: 800;
+}
+.hero-section p {
+    color: #e0e0e0;
+}
+
+/* ------------------------------------------------------------------
+   SECCIÓN QUIÉNES SOMOS
+   ------------------------------------------------------------------ */
+.img-quienes {
+    max-width: 480px; 
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Tarjetas de Servicios */
+.card-servicio {
+    border: none;
+    transition: transform 0.3s ease;
+}
+.card-servicio:hover {
+    transform: translateY(-5px);
+}
+
+/* Estilo para el bloque Aside */
+.aside-style {
+    background-color: white;
+    border-left: 4px solid var(--color-primario);
+}
+
+/* MEDIA QUERY: Celulares */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 60px 20px !important;
+    }
+    .img-quienes {
+        max-width: 100% !important;
+        margin-bottom: 20px;
+    }
+}
