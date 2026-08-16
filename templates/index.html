@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+    <section id="inicio" class="hero-section shadow mb-5">
+        <div class="container py-3">
+            <h1 class="display-5">Portafolio Personal de Manuel Manzaba</h1>
+            <p class="lead mt-3">Estudiante de la carrera de Tecnología de la Información</p>
+        </div>
+    </section>
+
+    <section id="gestion-proyectos" class="bg-white p-4 rounded shadow-sm mb-5">
+        <h2 class="text-primary border-bottom pb-2 mb-4">Gestión de Proyectos de TI</h2>
+        
+        <!-- Contenedor para Alertas -->
+        <div id="alerta-container"></div>
+
+        <form id="formulario-registro" novalidate>
+            <div class="mb-3">
+                <label for="nombre" class="form-label fw-bold">Nombre del Proyecto</label>
+                <input type="text" class="form-control" id="nombre" placeholder="Ej. Portafolio Web" required>
+            </div>
+            <div class="mb-3">
+                <label for="categoria" class="form-label fw-bold">Categoría</label>
+                <select class="form-select" id="categoria" required>
+                    <option value="" selected disabled>Seleccione una opción</option>
+                    <option value="Desarrollo Web">Desarrollo Web</option>
+                    <option value="Soporte Técnico">Soporte Técnico</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="descripcion" class="form-label fw-bold">Descripción</label>
+                <textarea class="form-control" id="descripcion" rows="2" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" id="btn-guardar">
+                <span id="spinner-carga" class="spinner-border spinner-border-sm d-none me-2" role="status"></span>
+                Guardar Proyecto
+            </button>
+        </form>
+
+        <div id="lista-registros" class="row g-3 mt-4"></div>
+    </section>
+
+    <!-- Modal de Bootstrap -->
+    <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalle del Proyecto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modal-contenido"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
