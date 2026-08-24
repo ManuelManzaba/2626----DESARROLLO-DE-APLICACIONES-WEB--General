@@ -2,17 +2,17 @@
 {% block content %}
     <section id="inicio" class="hero-section shadow mb-5">
         <div class="container py-3">
-            <h1 class="display-5">Portafolio Personal de Manuel Manzaba</h1>
-            <p class="lead mt-3">Estudiante de la carrera de Tecnología de la Información</p>
+            <!-- Uso de variable simple y filtro de Jinja2 (|upper) -->
+            <h1 class="display-5">{{ titulo | upper }}</h1>
+            <p class="lead mt-3">Estudiante: {{ usuario.nombre }} - {{ usuario.carrera }}</p>
+            <span class="badge bg-primary fs-6">Estado: {{ usuario.estado }}</span>
         </div>
     </section>
 
+    <!-- Mantienes tu sección de gestión interactiva con JavaScript -->
     <section id="gestion-proyectos" class="bg-white p-4 rounded shadow-sm mb-5">
         <h2 class="text-primary border-bottom pb-2 mb-4">Gestión de Proyectos de TI</h2>
-        
-        <!-- Contenedor para Alertas -->
         <div id="alerta-container"></div>
-
         <form id="formulario-registro" novalidate>
             <div class="mb-3">
                 <label for="nombre" class="form-label fw-bold">Nombre del Proyecto</label>
@@ -35,7 +35,6 @@
                 Guardar Proyecto
             </button>
         </form>
-
         <div id="lista-registros" class="row g-3 mt-4"></div>
     </section>
 

@@ -2,9 +2,29 @@
 {% block content %}
 <div class="container my-4">
     <div class="bg-white p-4 rounded shadow-sm">
-        <h2 class="text-primary border-bottom pb-2 mb-3">Gestión de Productos</h2>
-        <p class="text-muted">Módulo dedicado al registro, control y administración del inventario.</p>
-        <div class="alert alert-success">Estado del módulo: Activo y enlazado correctamente.</div>
+        <h2 class="text-primary border-bottom pb-2 mb-4">Gestión de Productos e Inventario</h2>
+        
+        <div class="row">
+            <!-- Bucle for de Jinja2 para recorrer la lista enviada desde app.py -->
+            {% for prod in productos %}
+            <div class="col-md-6 mb-3">
+                <div class="card h-100 shadow-sm p-3">
+                    <h5 class="fw-bold">{{ prod.nombre }}</h5>
+                    <p class="text-muted mb-1">Precio: ${{ "%.2f"|format(prod.precio) }}</p>
+                    <p class="mb-2">Stock disponible: {{ prod.stock }} unidades</p>
+                    
+                    <div>
+                        <!-- Condicional if / else de Jinja2 -->
+                        {% if prod.stock > 0 %}
+                            <span class="badge bg-success">Disponible</span>
+                        {% else %}
+                            <span class="badge bg-danger">Agotado</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </div>
 {% endblock %}
