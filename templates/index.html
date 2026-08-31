@@ -3,9 +3,9 @@
     <section id="inicio" class="hero-section shadow mb-5">
         <div class="container py-3">
             <!-- Uso de variable simple y filtro de Jinja2 (|upper) -->
-            <h1 class="display-5">{{ titulo | upper }}</h1>
-            <p class="lead mt-3">Estudiante: {{ usuario.nombre }} - {{ usuario.carrera }}</p>
-            <span class="badge bg-primary fs-6">Estado: {{ usuario.estado }}</span>
+            <h1 class="display-5">{{ titulo | upper if titulo else "BIENVENIDO" }}</h1>
+            <p class="lead mt-3">Estudiante: Manuel Darío Manzaba - Tecnologías de la Información</p>
+            <span class="badge bg-primary fs-6">Estado: Activo</span>
         </div>
     </section>
 
