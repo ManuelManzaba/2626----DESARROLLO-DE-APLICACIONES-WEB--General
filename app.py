@@ -9,36 +9,35 @@ app.config['SECRET_KEY'] = 'tu_clave_secreta_muy_segura'
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', usuario="Manuel")
 
 @app.route('/productos', methods=['GET', 'POST'])
 def productos():
     form = ProductoForm()
     if form.validate_on_submit():
-        # Aquí puedes procesar los datos válidos en el futuro
         pass
-    return render_template('formulario_producto.html', form=form)
+    return render_template('formulario_producto.html', form=form, usuario="Manuel")
 
 @app.route('/clientes', methods=['GET', 'POST'])
 def clientes():
     form = ClienteForm()
     if form.validate_on_submit():
         pass
-    return render_template('formulario_cliente.html', form=form)
+    return render_template('formulario_cliente.html', form=form, usuario="Manuel")
 
 @app.route('/proveedores', methods=['GET', 'POST'])
 def proveedores():
     form = ProveedorForm()
     if form.validate_on_submit():
         pass
-    return render_template('formulario_proveedor.html', form=form)
+    return render_template('formulario_proveedor.html', form=form, usuario="Manuel")
 
 @app.route('/facturacion', methods=['GET', 'POST'])
 def facturacion():
     form = FacturacionForm()
     if form.validate_on_submit():
         pass
-    return render_template('formulario_facturacion.html', form=form)
+    return render_template('formulario_facturacion.html', form=form, usuario="Manuel")
 
 if __name__ == '__main__':
     app.run(debug=True)
