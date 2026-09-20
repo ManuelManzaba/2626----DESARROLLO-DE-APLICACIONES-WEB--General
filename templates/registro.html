@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 450px;">
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      <h3 class="text-center mb-4">Crear Cuenta</h3>
+      
+      <form method="POST" action="{{ url_for('registro') }}" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+          {{ form.usuario.label(class="form-label") }}
+          {{ form.usuario(class="form-control") }}
+          {% for error in form.usuario.errors %}
+            <span class="text-danger small">{{ error }}</span>
+          {% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.password.label(class="form-label") }}
+          {{ form.password(class="form-control") }}
+          {% for error in form.password.errors %}
+            <span class="text-danger small">{{ error }}</span>
+          {% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.confirm_password.label(class="form-label") }}
+          {{ form.confirm_password(class="form-control") }}
+          {% for error in form.confirm_password.errors %}
+            <span class="text-danger small">{{ error }}</span>
+          {% endfor %}
+        </div>
+
+        <div class="d-grid gap-2">
+          {{ form.submit(class="btn btn-primary") }}
+        </div>
+      </form>
+      
+      <hr>
+      <p class="text-center mb-0">
+        ¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Inicia sesión aquí</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
