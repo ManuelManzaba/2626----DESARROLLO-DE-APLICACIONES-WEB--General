@@ -22,6 +22,48 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Por favor, inicia sesión para acceder a esta página.'
 login_manager.login_message_category = 'warning'
 
+# --- INICIALIZADOR AUTOMÁTICO DE TABLAS EN POSTGRESQL ---
+def inicializar_base_de_datos():
+    conexion = obtener_conexion()
+    if conexion:
+        try:
+            cursor = conexion.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    id SERIAL PRIMARY KEY,
+                    usuario VARCHAR(50) UNIQUE NOT NULL,
+                    password VARCHAR(255) NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS proveedores (
+                    id SERIAL PRIMARY KEY,
+                    nombre VARCHAR(100) NOT NULL,
+                    ruc VARCHAR(13)
+                );
+
+                CREATE TABLE IF NOT EXISTS productos (
+                    id SERIAL PRIMARY KEY,
+                    nombre VARCHAR(150) NOT NULL,
+                    descripcion TEXT,
+                    precio NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+                    stock INT NOT NULL DEFAULT 0,
+                    proveedor_id INT REFERENCES proveedores(id) ON DELETE SET NULL,
+                    usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL
+                );
+            """)
+            conexion.commit()
+            cursor.close()
+            conexion.close()
+            print("Tablas verificadas/creadas exitosamente en PostgreSQL.")
+        except Exception as e:
+            print(f"Error al inicializar tablas en PostgreSQL: {e}")
+            if conexion:
+                conexion.close()
+
+# Ejecutamos la creación de tablas al arrancar la app
+with app.app_context():
+    inicializar_base_de_datos()
+
 @login_manager.user_loader
 def load_user(user_id):
     conexion = obtener_conexion()
@@ -33,7 +75,6 @@ def load_user(user_id):
             cursor.close()
             conexion.close()
             if row:
-                # Si psycopg2 retorna RealDictCursor o tupla según la conexión:
                 id_u = row['id'] if isinstance(row, dict) else row[0]
                 usr = row['usuario'] if isinstance(row, dict) else row[1]
                 pwd = row['password'] if isinstance(row, dict) else row[2]
@@ -138,7 +179,7 @@ def logout():
     flash("Has cerrado sesión correctamente.", "info")
     return redirect(url_for('login'))
 
-# --- RUTAS PROTEGIDAS DEL SISTEMA (CRUD POSTGRESQL) ---
+# --- RUTAS PROTEGEDAS DEL SISTEMA (CRUD POSTGRESQL) ---
 
 @app.route('/dashboard')
 @login_required
