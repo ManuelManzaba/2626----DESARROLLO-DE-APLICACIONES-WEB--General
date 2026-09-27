@@ -13,7 +13,7 @@ from forms.login_form import LoginForm
 from forms.usuario_form import RegistroForm
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'tu_clave_secreta_muy_segura'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tu_clave_secreta_muy_segura')
 
 # Configuración de Flask-Login
 login_manager = LoginManager()
@@ -33,7 +33,11 @@ def load_user(user_id):
             cursor.close()
             conexion.close()
             if row:
-                return Usuario(id=row[0], usuario=row[1], password=row[2])
+                # Si psycopg2 retorna RealDictCursor o tupla según la conexión:
+                id_u = row['id'] if isinstance(row, dict) else row[0]
+                usr = row['usuario'] if isinstance(row, dict) else row[1]
+                pwd = row['password'] if isinstance(row, dict) else row[2]
+                return Usuario(id=id_u, usuario=usr, password=pwd)
         except Exception as e:
             print(f"Error al cargar usuario: {e}")
             if conexion:
@@ -44,7 +48,6 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    # Si ya inició sesión, va al dashboard; si no, lo redirige directo al login
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
@@ -63,7 +66,6 @@ def registro():
         if conexion:
             try:
                 cursor = conexion.cursor()
-                # Verificar si ya existe el nombre de usuario
                 cursor.execute("SELECT id FROM usuarios WHERE usuario = %s", (usuario_input,))
                 if cursor.fetchone():
                     flash("El nombre de usuario ya está registrado.", "danger")
@@ -71,8 +73,10 @@ def registro():
                     conexion.close()
                     return render_template('registro.html', form=form)
 
-                # Insertar nuevo usuario con contraseña protegida por hash
-                cursor.execute("INSERT INTO usuarios (usuario, password) VALUES (%s, %s)", (usuario_input, password_hash))
+                cursor.execute(
+                    "INSERT INTO usuarios (usuario, password) VALUES (%s, %s)",
+                    (usuario_input, password_hash)
+                )
                 conexion.commit()
                 cursor.close()
                 conexion.close()
@@ -106,14 +110,19 @@ def login():
                 cursor.close()
                 conexion.close()
 
-                if user_data and check_password_hash(user_data[2], password_input):
-                    user_obj = Usuario(id=user_data[0], usuario=user_data[1], password=user_data[2])
-                    login_user(user_obj)
-                    flash("Inicio de sesión exitoso.", "success")
-                    next_page = request.args.get('next')
-                    return redirect(next_page or url_for('dashboard'))
-                else:
-                    flash("Usuario o contraseña incorrectos.", "danger")
+                if user_data:
+                    u_id = user_data['id'] if isinstance(user_data, dict) else user_data[0]
+                    u_usr = user_data['usuario'] if isinstance(user_data, dict) else user_data[1]
+                    u_pwd = user_data['password'] if isinstance(user_data, dict) else user_data[2]
+
+                    if check_password_hash(u_pwd, password_input):
+                        user_obj = Usuario(id=u_id, usuario=u_usr, password=u_pwd)
+                        login_user(user_obj)
+                        flash("Inicio de sesión exitoso.", "success")
+                        next_page = request.args.get('next')
+                        return redirect(next_page or url_for('dashboard'))
+
+                flash("Usuario o contraseña incorrectos.", "danger")
             except Exception as e:
                 print(f"Error al iniciar sesión: {e}")
                 flash("Error al conectar con la base de datos.", "danger")
@@ -129,91 +138,128 @@ def logout():
     flash("Has cerrado sesión correctamente.", "info")
     return redirect(url_for('login'))
 
-# --- RUTAS PROTEGIDAS DEL SISTEMA ---
+# --- RUTAS PROTEGIDAS DEL SISTEMA (CRUD POSTGRESQL) ---
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
     return render_template('dashboard.html')
 
+# 1. LEER (SELECT CON JOIN) Y CREAR (INSERT) PRODUCTOS
 @app.route('/productos', methods=['GET', 'POST'])
 @login_required
 def productos():
     form = ProductoForm()
-    
-    if request.method == 'POST':
-        nombre = request.form.get('nombre', '').strip()
-        descripcion = request.form.get('descripcion', '').strip()
-        precio_raw = request.form.get('precio', '0')
-        stock_raw = request.form.get('stock', '0')
-        
-        try:
-            precio = float(precio_raw) if precio_raw else 0.0
-        except ValueError:
-            precio = 0.0
-            
-        try:
-            stock = int(stock_raw) if stock_raw else 0
-        except ValueError:
-            stock = 0
-            
-        if nombre:
-            conexion = obtener_conexion()
-            if conexion:
-                try:
-                    cursor = conexion.cursor()
-                    try:
-                        query = "INSERT INTO productos (nombre, descripcion, precio, stock) VALUES (%s, %s, %s, %s)"
-                        cursor.execute(query, (nombre, descripcion, precio, stock))
-                    except Exception:
-                        query = "INSERT INTO productos (nombre, precio, stock) VALUES (%s, %s, %s)"
-                        cursor.execute(query, (nombre, precio, stock))
-                        
-                    conexion.commit()
-                    cursor.close()
-                    conexion.close()
-                except Exception as e:
-                    print(f"Error al insertar en MySQL: {e}")
-                    if conexion:
-                        conexion.close()
-                        
-        return redirect(url_for('productos'))
 
+    # Operación CREAR (INSERT)
+    if request.method == 'POST' and form.validate_on_submit():
+        nombre = form.nombre.data.strip() if hasattr(form, 'nombre') else request.form.get('nombre', '').strip()
+        descripcion = request.form.get('descripcion', '').strip()
+        precio = request.form.get('precio', 0.0)
+        stock = request.form.get('stock', 0)
+        proveedor_id = request.form.get('proveedor_id', 1)
+
+        conexion = obtener_conexion()
+        if conexion:
+            try:
+                cursor = conexion.cursor()
+                query = """
+                    INSERT INTO productos (nombre, descripcion, precio, stock, proveedor_id, usuario_id)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(query, (nombre, descripcion, precio, stock, proveedor_id, current_user.id))
+                conexion.commit()
+                cursor.close()
+                conexion.close()
+                flash("Producto agregado correctamente.", "success")
+                return redirect(url_for('productos'))
+            except Exception as e:
+                print(f"Error al insertar en PostgreSQL: {e}")
+                flash("Ocurrió un error al guardar el producto.", "danger")
+                if conexion:
+                    conexion.close()
+
+    # Operación LEER (SELECT CON JOIN DE 3 TABLAS: productos, proveedores, usuarios)
     lista_productos = []
     conexion = obtener_conexion()
     if conexion:
         try:
             cursor = conexion.cursor()
-            try:
-                cursor.execute('SELECT id_producto, nombre, descripcion, precio, stock FROM productos')
-                filas = cursor.fetchall()
-                for fila in filas:
-                    lista_productos.append((
-                        int(fila[0]),
-                        str(fila[1]),
-                        str(fila[2]) if fila[2] else "",
-                        str(fila[3]),
-                        int(fila[4])
-                    ))
-            except Exception:
-                cursor.execute('SELECT id_producto, nombre, precio, stock FROM productos')
-                filas = cursor.fetchall()
-                for fila in filas:
-                    lista_productos.append((
-                        int(fila[0]),
-                        str(fila[1]),
-                        "",
-                        str(fila[2]),
-                        int(fila[3])
-                    ))
+            query_join = """
+                SELECT p.id, p.nombre, p.descripcion, p.precio, p.stock, 
+                       pr.nombre AS proveedor_nombre, u.usuario AS registrado_por
+                FROM productos p
+                LEFT JOIN proveedores pr ON p.proveedor_id = pr.id
+                LEFT JOIN usuarios u ON p.usuario_id = u.id
+                ORDER BY p.id DESC;
+            """
+            cursor.execute(query_join)
+            lista_productos = cursor.fetchall()
             cursor.close()
             conexion.close()
         except Exception as e:
-            print(f"Error al consultar en MySQL: {e}")
+            print(f"Error al consultar productos: {e}")
             if conexion:
                 conexion.close()
-                
+
     return render_template('formulario_producto.html', form=form, productos=lista_productos)
+
+# 2. ACTUALIZAR PRODUCTO (UPDATE)
+@app.route('/productos/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_producto(id):
+    conexion = obtener_conexion()
+    if request.method == 'POST':
+        nombre = request.form.get('nombre', '').strip()
+        descripcion = request.form.get('descripcion', '').strip()
+        precio = request.form.get('precio', 0.0)
+        stock = request.form.get('stock', 0)
+        proveedor_id = request.form.get('proveedor_id', 1)
+
+        if conexion:
+            try:
+                cursor = conexion.cursor()
+                query = """
+                    UPDATE productos 
+                    SET nombre=%s, descripcion=%s, precio=%s, stock=%s, proveedor_id=%s
+                    WHERE id=%s
+                """
+                cursor.execute(query, (nombre, descripcion, precio, stock, proveedor_id, id))
+                conexion.commit()
+                cursor.close()
+                conexion.close()
+                flash("Producto actualizado exitosamente.", "success")
+                return redirect(url_for('productos'))
+            except Exception as e:
+                print(f"Error al actualizar producto: {e}")
+                flash("Error al actualizar el registro.", "danger")
+                if conexion:
+                    conexion.close()
+
+    return redirect(url_for('productos'))
+
+# 3. ELIMINAR PRODUCTO (DELETE)
+@app.route('/productos/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_producto(id):
+    conexion = obtener_conexion()
+    if conexion:
+        try:
+            cursor = conexion.cursor()
+            cursor.execute("DELETE FROM productos WHERE id = %s", (id,))
+            conexion.commit()
+            cursor.close()
+            conexion.close()
+            flash("Producto eliminado correctamente.", "info")
+        except Exception as e:
+            print(f"Error al eliminar producto: {e}")
+            flash("Error al eliminar el producto.", "danger")
+            if conexion:
+                conexion.close()
+
+    return redirect(url_for('productos'))
+
+# --- OTRAS RUTAS DEL SISTEMA ---
 
 @app.route('/clientes', methods=['GET', 'POST'])
 @login_required
