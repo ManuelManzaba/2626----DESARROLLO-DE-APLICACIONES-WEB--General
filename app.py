@@ -201,25 +201,24 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-# 1. LEER Y CREAR PRODUCTOS
+# 1. LEER Y CREAR PRODUCTOS (CORREGIDO PARA EVITAR ERROR 500)
 @app.route('/productos', methods=['GET', 'POST'])
 @login_required
 def productos():
     form = ProductoForm()
 
     if request.method == 'POST':
-        # Captura datos de campos tradicionales HTML o Flask-WTF
         nombre = form.nombre.data.strip() if getattr(form, 'nombre', None) and form.nombre.data else request.form.get('nombre', '').strip()
         descripcion = form.descripcion.data.strip() if getattr(form, 'descripcion', None) and form.descripcion.data else request.form.get('descripcion', '').strip()
         
         try:
             precio = float(form.precio.data) if getattr(form, 'precio', None) and form.precio.data else float(request.form.get('precio', 0.0))
-        except ValueError:
+        except (ValueError, TypeError):
             precio = 0.0
 
         try:
             stock = int(form.stock.data) if getattr(form, 'stock', None) and form.stock.data else int(request.form.get('stock', 0))
-        except ValueError:
+        except (ValueError, TypeError):
             stock = 0
 
         if nombre:
@@ -227,11 +226,12 @@ def productos():
             if conexion:
                 try:
                     cursor = conexion.cursor()
+                    # Inserción limpia a los campos principales
                     query = """
-                        INSERT INTO productos (nombre, descripcion, precio, stock, usuario_id)
-                        VALUES (%s, %s, %s, %s, %s)
+                        INSERT INTO productos (nombre, descripcion, precio, stock)
+                        VALUES (%s, %s, %s, %s)
                     """
-                    cursor.execute(query, (nombre, descripcion, precio, stock, current_user.id))
+                    cursor.execute(query, (nombre, descripcion, precio, stock))
                     conexion.commit()
                     cursor.close()
                     conexion.close()
@@ -239,7 +239,7 @@ def productos():
                     return redirect(url_for('productos'))
                 except Exception as e:
                     print(f"Error al insertar en PostgreSQL: {e}")
-                    flash("Ocurrió un error al guardar el producto.", "danger")
+                    flash(f"Ocurrió un error al guardar el producto: {e}", "danger")
                     if conexion:
                         conexion.close()
 
