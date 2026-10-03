@@ -38,7 +38,15 @@ def inicializar_base_de_datos():
                 CREATE TABLE IF NOT EXISTS proveedores (
                     id SERIAL PRIMARY KEY,
                     nombre VARCHAR(100) NOT NULL,
-                    ruc VARCHAR(13)
+                    contacto VARCHAR(100),
+                    telefono VARCHAR(15)
+                );
+
+                CREATE TABLE IF NOT EXISTS clientes (
+                    id SERIAL PRIMARY KEY,
+                    empresa VARCHAR(100) NOT NULL,
+                    email VARCHAR(120) NOT NULL,
+                    ciudad VARCHAR(50) NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS productos (
@@ -49,6 +57,13 @@ def inicializar_base_de_datos():
                     stock INT NOT NULL DEFAULT 0,
                     proveedor_id INT REFERENCES proveedores(id) ON DELETE SET NULL,
                     usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS facturas (
+                    id SERIAL PRIMARY KEY,
+                    cliente VARCHAR(100) NOT NULL,
+                    monto NUMERIC(10, 2) NOT NULL,
+                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
             conexion.commit()
@@ -179,62 +194,62 @@ def logout():
     flash("Has cerrado sesión correctamente.", "info")
     return redirect(url_for('login'))
 
-# --- RUTAS PROTEGEDAS DEL SISTEMA (CRUD POSTGRESQL) ---
+# --- RUTAS PROTEGIDAS DEL SISTEMA (CRUD POSTGRESQL) ---
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
     return render_template('dashboard.html')
 
-# 1. LEER (SELECT CON JOIN) Y CREAR (INSERT) PRODUCTOS
+# 1. LEER Y CREAR PRODUCTOS
 @app.route('/productos', methods=['GET', 'POST'])
 @login_required
 def productos():
     form = ProductoForm()
 
-    # Operación CREAR (INSERT)
-    if request.method == 'POST' and form.validate_on_submit():
-        nombre = form.nombre.data.strip() if hasattr(form, 'nombre') else request.form.get('nombre', '').strip()
-        descripcion = request.form.get('descripcion', '').strip()
-        precio = request.form.get('precio', 0.0)
-        stock = request.form.get('stock', 0)
-        proveedor_id = request.form.get('proveedor_id', 1)
+    if request.method == 'POST':
+        # Captura datos de campos tradicionales HTML o Flask-WTF
+        nombre = form.nombre.data.strip() if getattr(form, 'nombre', None) and form.nombre.data else request.form.get('nombre', '').strip()
+        descripcion = form.descripcion.data.strip() if getattr(form, 'descripcion', None) and form.descripcion.data else request.form.get('descripcion', '').strip()
+        
+        try:
+            precio = float(form.precio.data) if getattr(form, 'precio', None) and form.precio.data else float(request.form.get('precio', 0.0))
+        except ValueError:
+            precio = 0.0
 
-        conexion = obtener_conexion()
-        if conexion:
-            try:
-                cursor = conexion.cursor()
-                query = """
-                    INSERT INTO productos (nombre, descripcion, precio, stock, proveedor_id, usuario_id)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """
-                cursor.execute(query, (nombre, descripcion, precio, stock, proveedor_id, current_user.id))
-                conexion.commit()
-                cursor.close()
-                conexion.close()
-                flash("Producto agregado correctamente.", "success")
-                return redirect(url_for('productos'))
-            except Exception as e:
-                print(f"Error al insertar en PostgreSQL: {e}")
-                flash("Ocurrió un error al guardar el producto.", "danger")
-                if conexion:
+        try:
+            stock = int(form.stock.data) if getattr(form, 'stock', None) and form.stock.data else int(request.form.get('stock', 0))
+        except ValueError:
+            stock = 0
+
+        if nombre:
+            conexion = obtener_conexion()
+            if conexion:
+                try:
+                    cursor = conexion.cursor()
+                    query = """
+                        INSERT INTO productos (nombre, descripcion, precio, stock, usuario_id)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, (nombre, descripcion, precio, stock, current_user.id))
+                    conexion.commit()
+                    cursor.close()
                     conexion.close()
+                    flash("Producto agregado correctamente.", "success")
+                    return redirect(url_for('productos'))
+                except Exception as e:
+                    print(f"Error al insertar en PostgreSQL: {e}")
+                    flash("Ocurrió un error al guardar el producto.", "danger")
+                    if conexion:
+                        conexion.close()
 
-    # Operación LEER (SELECT CON JOIN DE 3 TABLAS: productos, proveedores, usuarios)
+    # Operación LEER (SELECT)
     lista_productos = []
     conexion = obtener_conexion()
     if conexion:
         try:
             cursor = conexion.cursor()
-            query_join = """
-                SELECT p.id, p.nombre, p.descripcion, p.precio, p.stock, 
-                       pr.nombre AS proveedor_nombre, u.usuario AS registrado_por
-                FROM productos p
-                LEFT JOIN proveedores pr ON p.proveedor_id = pr.id
-                LEFT JOIN usuarios u ON p.usuario_id = u.id
-                ORDER BY p.id DESC;
-            """
-            cursor.execute(query_join)
+            cursor.execute("SELECT id, nombre, descripcion, precio, stock FROM productos ORDER BY id DESC;")
             lista_productos = cursor.fetchall()
             cursor.close()
             conexion.close()
@@ -245,27 +260,26 @@ def productos():
 
     return render_template('formulario_producto.html', form=form, productos=lista_productos)
 
-# 2. ACTUALIZAR PRODUCTO (UPDATE)
+# 2. ACTUALIZAR PRODUCTO
 @app.route('/productos/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_producto(id):
-    conexion = obtener_conexion()
     if request.method == 'POST':
         nombre = request.form.get('nombre', '').strip()
         descripcion = request.form.get('descripcion', '').strip()
         precio = request.form.get('precio', 0.0)
         stock = request.form.get('stock', 0)
-        proveedor_id = request.form.get('proveedor_id', 1)
 
+        conexion = obtener_conexion()
         if conexion:
             try:
                 cursor = conexion.cursor()
                 query = """
                     UPDATE productos 
-                    SET nombre=%s, descripcion=%s, precio=%s, stock=%s, proveedor_id=%s
+                    SET nombre=%s, descripcion=%s, precio=%s, stock=%s
                     WHERE id=%s
                 """
-                cursor.execute(query, (nombre, descripcion, precio, stock, proveedor_id, id))
+                cursor.execute(query, (nombre, descripcion, precio, stock, id))
                 conexion.commit()
                 cursor.close()
                 conexion.close()
@@ -279,7 +293,7 @@ def editar_producto(id):
 
     return redirect(url_for('productos'))
 
-# 3. ELIMINAR PRODUCTO (DELETE)
+# 3. ELIMINAR PRODUCTO
 @app.route('/productos/eliminar/<int:id>', methods=['POST'])
 @login_required
 def eliminar_producto(id):
@@ -300,24 +314,95 @@ def eliminar_producto(id):
 
     return redirect(url_for('productos'))
 
-# --- OTRAS RUTAS DEL SISTEMA ---
+# --- MÓDULOS DE CLIENTES, PROVEEDORES Y FACTURACIÓN ---
 
 @app.route('/clientes', methods=['GET', 'POST'])
 @login_required
 def clientes():
     form = ClienteForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        empresa = form.empresa.data.strip()
+        email = form.email.data.strip()
+        ciudad = form.ciudad.data.strip()
+
+        conexion = obtener_conexion()
+        if conexion:
+            try:
+                cursor = conexion.cursor()
+                cursor.execute(
+                    "INSERT INTO clientes (empresa, email, ciudad) VALUES (%s, %s, %s)",
+                    (empresa, email, ciudad)
+                )
+                conexion.commit()
+                cursor.close()
+                conexion.close()
+                flash("Cliente guardado exitosamente.", "success")
+                return redirect(url_for('clientes'))
+            except Exception as e:
+                print(f"Error al guardar cliente: {e}")
+                flash("Error al guardar cliente.", "danger")
+                if conexion:
+                    conexion.close()
+
     return render_template('formulario_cliente.html', form=form)
 
 @app.route('/proveedores', methods=['GET', 'POST'])
 @login_required
 def proveedores():
     form = ProveedorForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        nombre = form.nombre.data.strip()
+        contacto = form.contacto.data.strip()
+        telefono = form.telefono.data.strip()
+
+        conexion = obtener_conexion()
+        if conexion:
+            try:
+                cursor = conexion.cursor()
+                cursor.execute(
+                    "INSERT INTO proveedores (nombre, contacto, telefono) VALUES (%s, %s, %s)",
+                    (nombre, contacto, telefono)
+                )
+                conexion.commit()
+                cursor.close()
+                conexion.close()
+                flash("Proveedor guardado exitosamente.", "success")
+                return redirect(url_for('proveedores'))
+            except Exception as e:
+                print(f"Error al guardar proveedor: {e}")
+                flash("Error al guardar proveedor.", "danger")
+                if conexion:
+                    conexion.close()
+
     return render_template('formulario_proveedor.html', form=form)
 
 @app.route('/facturacion', methods=['GET', 'POST'])
 @login_required
 def facturacion():
     form = FacturacionForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        cliente = form.cliente.data.strip()
+        monto = form.monto.data
+
+        conexion = obtener_conexion()
+        if conexion:
+            try:
+                cursor = conexion.cursor()
+                cursor.execute(
+                    "INSERT INTO facturas (cliente, monto) VALUES (%s, %s)",
+                    (cliente, monto)
+                )
+                conexion.commit()
+                cursor.close()
+                conexion.close()
+                flash("Factura generada exitosamente.", "success")
+                return redirect(url_for('facturacion'))
+            except Exception as e:
+                print(f"Error al generar factura: {e}")
+                flash("Error al generar factura.", "danger")
+                if conexion:
+                    conexion.close()
+
     return render_template('formulario_facturacion.html', form=form)
 
 if __name__ == '__main__':
