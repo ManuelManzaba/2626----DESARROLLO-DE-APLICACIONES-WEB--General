@@ -1,14 +1,66 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-  <div class="p-5 mb-4 bg-light rounded-3 shadow-sm border">
-    <div class="container-fluid py-3">
-      <h1 class="display-5 fw-bold">Bienvenido, {{ current_user.usuario }} 👋</h1>
-      <p class="col-md-8 fs-4">Has iniciado sesión correctamente en el sistema de gestión de ferretería.</p>
-      <hr class="my-4">
-      <p>Selecciona una opción del menú superior o accede directamente al módulo de productos:</p>
-      <a class="btn btn-primary btn-lg" href="{{ url_for('productos') }}" role="button">Ir a Gestión de Productos</a>
+<div class="container my-4">
+  <!-- BANNER CON IMAGEN DE FONDO -->
+  <div class="p-5 mb-5 text-white rounded-3 shadow-lg overflow-hidden position-relative" 
+       style="background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat; min-height: 320px;">
+    
+    <div class="container-fluid py-3 col-md-10">
+      <h1 class="display-5 fw-bold mb-3">Bienvenido, {{ current_user.usuario }} 👋</h1>
+      <p class="fs-4 text-light">Has iniciado sesión correctamente en el sistema de gestión de ferretería.</p>
+      <hr class="my-4 border-light">
+      <p class="mb-4">Selecciona una opción del menú superior o accede directamente a los módulos del sistema:</p>
+      <a class="btn btn-primary btn-lg px-4 fw-bold" href="{{ url_for('productos') }}" role="button">
+        Ir a Gestión de Productos
+      </a>
+    </div>
+  </div>
+
+  <!-- TARJETAS DE ACCESO RÁPIDO A LOS MÓDULOS -->
+  <div class="row text-center">
+    <div class="col-md-3 mb-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body py-4">
+          <div class="fs-1 mb-2">📦</div>
+          <h5 class="card-title fw-bold text-primary">Productos</h5>
+          <p class="card-text text-muted small">Registra nuevos artículos, actualiza precios y controla el stock.</p>
+          <a href="{{ url_for('productos') }}" class="btn btn-outline-primary btn-sm mt-2">Acceder</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body py-4">
+          <div class="fs-1 mb-2">👥</div>
+          <h5 class="card-title fw-bold text-success">Clientes</h5>
+          <p class="card-text text-muted small">Administra la base de datos de compradores y empresas.</p>
+          <a href="{{ url_for('clientes') }}" class="btn btn-outline-success btn-sm mt-2">Acceder</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body py-4">
+          <div class="fs-1 mb-2">🚚</div>
+          <h5 class="card-title fw-bold text-warning">Proveedores</h5>
+          <p class="card-text text-muted small">Gestión de contactos e información de distribuidores.</p>
+          <a href="{{ url_for('proveedores') }}" class="btn btn-outline-warning btn-sm mt-2">Acceder</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body py-4">
+          <div class="fs-1 mb-2">🧾</div>
+          <h5 class="card-title fw-bold text-info">Facturación</h5>
+          <p class="card-text text-muted small">Genera comprobantes de pago y registra ventas.</p>
+          <a href="{{ url_for('facturacion') }}" class="btn btn-outline-info btn-sm mt-2">Acceder</a>
+        </div>
+      </div>
     </div>
   </div>
 </div>
